@@ -145,3 +145,87 @@ with tab1:
                 with st.chat_message(msg["role"]): st.write(msg["content"])
                 
         if p := st.chat_input("Ask the strategist..."):
+            st.session_state.chat_history.append({"role": "user", "content": p})
+            st.rerun() 
+        
+        if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
+            with chat_container:
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        ans = client.models.generate_content(
+                            model='gemini-3.1-pro-preview',
+                            contents=f"F1 Race Engineer. 2026 season context. Answer briefly: {st.session_state.chat_history[-1]['content']}",
+                            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearchRetrieval())])
+                        ).text
+                        st.write(ans)
+                        st.session_state.chat_history.append({"role": "assistant", "content": ans})
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_main:
+        if status["status"] == "COUNTDOWN":
+            st.markdown(f'<p class="race-title">NEXT RACE: {status["name"]}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="countdown-timer">{status["timer"]}</p>', unsafe_allow_html=True)
+            st.markdown('<p class="countdown-labels">DAYS &nbsp; HRS &nbsp; MINS &nbsp; SECS</p>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<p class="race-title"><span class="live-badge">LIVE</span>{status["name"]}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="countdown-timer">{datetime.now().strftime("%H:%M:%S")}</p>', unsafe_allow_html=True)
+            st.markdown('<p class="countdown-labels">SESSION CLOCK</p>', unsafe_allow_html=True)
+            
+        map_html = '<div class="track-wrapper">'
+        map_html += '<img src="https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Japan_Circuit.png" style="width: 100%; display: block;">'
+        
+        for d in live_drivers:
+            map_html += f'<div class="driver-dot" style="background: {d["hex"]}; top: {d["y"]}%; left: {d["x"]}%;">{d["short"]}</div>'
+            
+        map_html += '</div>'
+        if status["status"] == "COUNTDOWN":
+            st.caption("🏎️ Paddock Standby Mode: Simulating telemetry from previous session.")
+        st.markdown(map_html, unsafe_allow_html=True)
+
+    with col_standings:
+        st.subheader("🏆 Grid Order")
+        for d in live_drivers:
+            st.markdown(f"""
+            <div style='padding:12px; background:#f9fafb; margin-bottom:8px; border-radius:8px; border-left:6px solid {d['hex']}; border: 1px solid #e5e7eb;'>
+                <span style='font-weight:900; color:#9ca3af; margin-right:8px;'>P{d['pos']}</span> 
+                <span style='font-weight:700; color:#111827;'>{d['name']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.write("---")
+    st.subheader("📰 Paddock News")
+    news_cols = st.columns(4)
+    feed = feedparser.parse("https://www.autosport.com/rss/f1/news")
+    
+    for i, col in enumerate(news_cols):
+        if i < len(feed.entries):
+            entry = feed.entries[i]
+            with col:
+                st.markdown(f'''
+                <div class="news-card">
+                    <a href="{entry.link}" target="_blank">{entry.title}</a>
+                    <br><small style="color:#94a3b8; margin-top:10px; display:block;">{entry.published[:16]}</small>
+                </div>
+                ''', unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("🔮 Full Grid Win Probability")
+    st.write("Calculated based on 2026 performance trends.")
+    st.write("---")
+    probs = [("K. Antonelli", "Mercedes", 45), ("G. Russell", "Mercedes", 25), ("C. Leclerc", "Ferrari", 15), 
+             ("O. Piastri", "McLaren", 8), ("L. Hamilton", "Ferrari", 5), ("M. Verstappen", "Red Bull", 2)]
+    
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        for name, team, p in probs[:3]:
+            st.markdown(f"**{name} ({team})**")
+            st.progress(p / 100, text=f"{p}%")
+            st.write("")
+    with col_p2:
+        for name, team, p in probs[3:]:
+            st.markdown(f"**{name} ({team})**")
+            st.progress(p / 100, text=f"{p}%")
+            st.write("")
+
+time.sleep(1)
+st.rerun()
