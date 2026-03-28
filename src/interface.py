@@ -144,4 +144,4 @@ with tab1:
             for msg in st.session_state.chat_history:
                 with st.chat_message(msg["role"]): st.write(msg["content"])
                 
-        if p :=
+        if p := st.chat_input("Ask the strategist..."):
