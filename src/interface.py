@@ -117,4 +117,4 @@ def get_simulated_html_positions():
 live_drivers = get_simulated_html_positions()
 
 # --- 4. TOP NAV ---
-st.markdown("<h3 style='text-align: center; color: #e10600; letter-spacing: 2px;'>🏎️ VIP ACCESS
+st.markdown("<h3 style='text-align: center; color: #e10600; letter-spacing: 2px;'>🏎️ VIP ACCESS: WELCOME FANS</h3>", unsafe_allow_html=True)
