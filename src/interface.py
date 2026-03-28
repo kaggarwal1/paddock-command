@@ -106,4 +106,6 @@ def get_simulated_html_positions():
         {"pos": 2, "name": "G. Russell", "short": "RUS", "hex": "#00d2be", "speed": 0.29, "offset": 0.2},
         {"pos": 3, "name": "C. Leclerc", "short": "LEC", "hex": "#ef1a2d", "speed": 0.28, "offset": 0.5},
         {"pos": 4, "name": "O. Piastri", "short": "PIA", "hex": "#ff8700", "speed": 0.28, "offset": 0.7},
-        {"pos": 5, "name": "L. Hamilton
+        {"pos": 5, "name": "L. Hamilton", "short": "HAM", "hex": "#ef1a2d", "speed": 0.27, "offset": 1.1},
+        {"pos": 6, "name": "M. Verstappen", "short": "VER", "hex": "#0600ef", "speed": 0.26, "offset": 1.5},
+    ]
