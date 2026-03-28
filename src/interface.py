@@ -70,11 +70,10 @@ F1_CALENDAR = [
 def get_race_status():
     now = datetime.now()
     for race in F1_CALENDAR:
-        # Targeting 15:00:00 as generic race time
         race_time = datetime.strptime(race["date"] + " 15:00:00", "%Y-%m-%d %H:%M:%S")
         if race_time > now:
             time_left = race_time - now
-            if time_left.days == 0 and time_left.seconds < 10800: # Within 3 hours = Live Race Window
+            if time_left.days == 0 and time_left.seconds < 10800:
                 return {"status": "LIVE", "name": race["name"]}
             else:
                 d = time_left.days
@@ -118,3 +117,106 @@ live_drivers = get_simulated_html_positions()
 
 # --- 4. TOP NAV ---
 st.markdown("<h3 style='text-align: center; color: #e10600; letter-spacing: 2px;'>🏎️ VIP ACCESS: WELCOME FANS</h3>", unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["🏁 RACE CONTROL", "🔮 KUSH'S PREDICTIONS"])
+
+with tab1:
+    col_chat, col_main, col_standings = st.columns([1.2, 2.5, 1])
+    
+    with col_chat:
+        st.subheader("🤖 Live Assistant")
+        st.markdown("<p style='font-size: 13px; color: #6b7280; font-style: italic; margin-bottom: 15px;'>Welcome to the paddock chat window. You can use this assistance to ask any questions about the race, season, drivers, anything your F1 heart desires.</p>", unsafe_allow_html=True)
+        
+        st.markdown('<div class="clean-card">', unsafe_allow_html=True)
+        if "chat_history" not in st.session_state: st.session_state.chat_history = []
+        
+        chat_container = st.container(height=400)
+        with chat_container:
+            for msg in st.session_state.chat_history:
+                with st.chat_message(msg["role"]): st.write(msg["content"])
+                
+        if p := st.chat_input("Ask the strategist..."):
+            st.session_state.chat_history.append({"role": "user", "content": p})
+            st.rerun() 
+        
+        if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
+            with chat_container:
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        ans = client.models.generate_content(
+                            model='gemini-3.1-pro-preview',
+                            contents=f"F1 Race Engineer. 2026 season context. Answer briefly: {st.session_state.chat_history[-1]['content']}",
+                            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearchRetrieval())])
+                        ).text
+                        st.write(ans)
+                        st.session_state.chat_history.append({"role": "assistant", "content": ans})
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_main:
+        if status["status"] == "COUNTDOWN":
+            st.markdown(f'<p class="race-title">NEXT RACE: {status["name"]}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="countdown-timer">{status["timer"]}</p>', unsafe_allow_html=True)
+            st.markdown('<p class="countdown-labels">DAYS &nbsp; HRS &nbsp; MINS &nbsp; SECS</p>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<p class="race-title"><span class="live-badge">LIVE</span>{status["name"]}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p class="countdown-timer">{datetime.now().strftime("%H:%M:%S")}</p>', unsafe_allow_html=True)
+            st.markdown('<p class="countdown-labels">SESSION CLOCK</p>', unsafe_allow_html=True)
+            
+        map_html = '<div class="track-wrapper">'
+        map_html += '<img src="https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Japan_Circuit.png" style="width: 100%; display: block;">'
+        
+        for d in live_drivers:
+            map_html += f'<div class="driver-dot" style="background: {d["hex"]}; top: {d["y"]}%; left: {d["x"]}%;">{d["short"]}</div>'
+            
+        map_html += '</div>'
+        if status["status"] == "COUNTDOWN":
+            st.caption("🏎️ Paddock Standby Mode: Simulating telemetry from previous session.")
+        st.markdown(map_html, unsafe_allow_html=True)
+
+    with col_standings:
+        st.subheader("🏆 Grid Order")
+        for d in live_drivers:
+            st.markdown(f"""
+            <div style='padding:12px; background:#f9fafb; margin-bottom:8px; border-radius:8px; border-left:6px solid {d['hex']}; border: 1px solid #e5e7eb;'>
+                <span style='font-weight:900; color:#9ca3af; margin-right:8px;'>P{d['pos']}</span> 
+                <span style='font-weight:700; color:#111827;'>{d['name']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.write("---")
+    st.subheader("📰 Paddock News")
+    news_cols = st.columns(4)
+    feed = feedparser.parse("https://www.autosport.com/rss/f1/news")
+    
+    for i, col in enumerate(news_cols):
+        if i < len(feed.entries):
+            entry = feed.entries[i]
+            with col:
+                st.markdown(f'''
+                <div class="news-card">
+                    <a href="{entry.link}" target="_blank">{entry.title}</a>
+                    <br><small style="color:#94a3b8; margin-top:10px; display:block;">{entry.published[:16]}</small>
+                </div>
+                ''', unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("🔮 Full Grid Win Probability")
+    st.write("Calculated based on 2026 performance trends.")
+    st.write("---")
+    probs = [("K. Antonelli", "Mercedes", 45), ("G. Russell", "Mercedes", 25), ("C. Leclerc", "Ferrari", 15), 
+             ("O. Piastri", "McLaren", 8), ("L. Hamilton", "Ferrari", 5), ("M. Verstappen", "Red Bull", 2)]
+    
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        for name, team, p in probs[:3]:
+            st.markdown(f"**{name} ({team})**")
+            st.progress(p / 100, text=f"{p}%")
+            st.write("")
+    with col_p2:
+        for name, team, p in probs[3:]:
+            st.markdown(f"**{name} ({team})**")
+            st.progress(p / 100, text=f"{p}%")
+            st.write("")
+
+time.sleep(1)
+st.rerun()
