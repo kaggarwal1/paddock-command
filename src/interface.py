@@ -109,3 +109,39 @@ def get_simulated_html_positions():
         {"pos": 5, "name": "L. Hamilton", "short": "HAM", "hex": "#ef1a2d", "speed": 0.27, "offset": 1.1},
         {"pos": 6, "name": "M. Verstappen", "short": "VER", "hex": "#0600ef", "speed": 0.26, "offset": 1.5},
     ]
+    
+    for d in grid:
+        progress = (current_time * d["speed"] + d["offset"]) % num_points
+        idx = int(progress)
+        fraction = progress - idx
+        p1 = track_points[idx]
+        p2 = track_points[idx + 1]
+        d["x"] = p1[0] + (p2[0] - p1[0]) * fraction
+        d["y"] = p1[1] + (p2[1] - p1[1]) * fraction
+        drivers_data.append(d)
+        
+    return drivers_data
+
+live_drivers = get_simulated_html_positions()
+
+# --- 4. TOP NAV ---
+st.markdown("<h3 style='text-align: center; color: #e10600; letter-spacing: 2px;'>🏎️ VIP ACCESS: WELCOME FANS</h3>", unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["🏁 RACE CONTROL", "🔮 KUSH'S PREDICTIONS"])
+
+with tab1:
+    col_chat, col_main, col_standings = st.columns([1.2, 2.5, 1])
+    
+    with col_chat:
+        st.subheader("🤖 Live Assistant")
+        st.markdown("<p style='font-size: 13px; color: #6b7280; font-style: italic; margin-bottom: 15px;'>Welcome to the paddock chat window. You can use this assistance to ask any questions about the race, season, drivers, anything your F1 heart desires.</p>", unsafe_allow_html=True)
+        
+        st.markdown('<div class="clean-card">', unsafe_allow_html=True)
+        if "chat_history" not in st.session_state: st.session_state.chat_history = []
+        
+        chat_container = st.container(height=400)
+        with chat_container:
+            for msg in st.session_state.chat_history:
+                with st.chat_message(msg["role"]): st.write(msg["content"])
+                
+        if p :=
